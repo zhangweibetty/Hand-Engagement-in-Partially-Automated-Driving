@@ -1,0 +1,1073 @@
+---
+title: "Data visualization"
+output: html_document
+date: '2025-06-15'
+---
+
+## Load packages
+```{r}
+# Libraries
+if(!require(ggplot2)) install.packages("ggplot2")
+library(ggplot2)
+
+if(!require(dplyr)) install.packages("dplyr")
+library(dplyr)
+
+if(!require(hrbrthemes)) install.packages("hrbrthemes")
+library(hrbrthemes)
+
+if(!require(viridis)) install.packages("viridis")
+library(viridis)
+
+if(!require(readxl)) install.packages("readxl")
+library(readxl)
+
+if(!require(ggsignif)) install.packages("ggsignif")
+library(ggsignif)
+
+if(!require(patchwork)) install.packages("patchwork")
+library(patchwork)
+
+if(!require(lmerTest)) install.packages("lmerTest")
+library(lmerTest)
+
+
+if(!require(rstatix)) install.packages("rstatix")
+library(rstatix)
+```
+
+
+## Figure 3.Violin plots of KSS scores for different driving modes for alert and drowsy drivers before and after driving.
+```{r}
+### (1) Read Data
+KSS <- read_excel("/Users/betty/Desktop/R Data Analysis/Data Sharing/Data.xlsx", sheet=3)
+
+
+### (2) Non (Alert)
+KSS_Non<- filter(KSS_Data, DriverState =="Non")  %>%
+  filter(!ID %in% c("G103"))
+
+KSS_Non$DrivingMode <- factor(KSS_Non$DrivingMode, levels = c("Manual", "HandsOn", "HandsOff"))
+KSS_Non$BeforeAfter <- factor(KSS_Non$BeforeAfter, levels = c("before", "after"))
+
+# assign colors in ggplot
+custom_colors <- c(
+  "Manual" = "#A2B5CD",
+  "HandsOn" = "#6CA6CD",
+  "HandsOff" = "#36648B"
+)
+
+# plot
+KSS_Non_plot <- KSS_Non %>%
+  ggplot(aes(x = BeforeAfter, y = KSSScores, fill = DrivingMode)) +
+    geom_violin(width = 1.2, position = position_dodge(width = 0.9)) +
+    geom_boxplot(width = 0.1, color = "grey", alpha = 0.2, 
+                 position = position_dodge(width = 0.9)) +
+    scale_fill_manual(values = custom_colors) +
+    geom_vline(xintercept = seq(0.5, length(unique(KSS_Data$BeforeAfter)) + 0.5, 1), 
+               color = "grey90", size = 0.3) +
+    scale_y_continuous(breaks = 1:9, limits = c(0, 11), expand = c(0, 0))+
+    scale_x_discrete(expand = expansion(add = 0.6)) +
+    theme_classic() +
+    theme(
+      plot.title = element_text(size = 15),
+      panel.grid = element_blank(),              
+      axis.line = element_line(color = "black"),
+      axis.ticks = element_line(color = "black"),
+      axis.text = element_text(color = "black"),  
+      axis.ticks.length = unit(-0.25, "cm"), 
+      axis.ticks.length.x = unit(-0.3, "cm"),  
+      axis.title.x = element_text(margin = margin(t = 20)), 
+      axis.title.y = element_text(margin = margin(r = 20))  
+      )+
+    xlab("Driving Mode") +
+    ylab("KSS Scores")
+
+
+# add significant stars
+ KSS_Non_plot_Sign <- KSS_Non_plot +
+  geom_signif(
+    xmin = 1.7, xmax = 2.3,
+    annotations = "*",  
+    y_position = 8.8,
+    tip_length = 0.03,
+    textsize = 16
+  )
+
+ 
+### (3) Shift (Drowsy)
+KSS_Shift<- filter(KSS_Data, DriverState =="Shift")  %>%
+  filter(!ID %in% c("G103"))
+
+KSS_Shift$DrivingMode <- factor(KSS_Shift$DrivingMode, levels = c("Manual", "HandsOn", "HandsOff"))
+KSS_Shift$BeforeAfter <- factor(KSS_Shift$BeforeAfter, levels = c("before", "after"))
+
+# assign colors in ggplot
+custom_colors <- c(
+  "Manual" = "#A2B5CD",
+  "HandsOn" = "#6CA6CD",
+  "HandsOff" = "#36648B"
+)
+
+# plot
+KSS_Shift_plot <- KSS_Shift %>%
+  ggplot(aes(x = BeforeAfter, y = KSSScores, fill = DrivingMode)) +
+    geom_violin(width = 1.2, position = position_dodge(width = 0.9)) +
+    geom_boxplot(width = 0.1, color = "grey", alpha = 0.2, 
+                 position = position_dodge(width = 0.9)) +
+    scale_fill_manual(values = custom_colors) +
+    geom_vline(xintercept = seq(0.5, length(unique(KSS_Data$BeforeAfter)) + 0.5, 1), 
+               color = "grey90", size = 0.3) +
+    scale_y_continuous(breaks = 1:9, limits = c(0, 11), expand = c(0, 0))+
+    scale_x_discrete(expand = expansion(add = 0.6)) +
+    theme_classic() +
+    theme(
+      plot.title = element_text(size = 15),
+      panel.grid = element_blank(),  
+      axis.line = element_line(color = "black"), 
+      axis.ticks = element_line(color = "black"),
+      axis.text = element_text(color = "black"),  
+      axis.ticks.length = unit(-0.25, "cm"), 
+      axis.ticks.length.x = unit(-0.3, "cm"),  
+      axis.title.x = element_text(margin = margin(t = 10)),  
+      axis.title.y = element_text(margin = margin(r = 10))   
+      )+
+    xlab("Driving Mode") +
+    ylab("KSS Scores")
+
+
+
+# add significant stars
+ KSS_Shift_plot_Sign <- KSS_Shift_plot +
+  geom_signif(
+    xmin = 1.7, xmax = 2.3,
+    annotations = "*",  
+    y_position = 9.5,
+    tip_length = 0.03,
+    textsize = 12
+  )
+ 
+
+KSS_Non_plot_titled <- KSS_Non_plot_Sign + 
+  ggtitle("Alert (Non-shift)")
+
+KSS_Shift_plot_titled <- KSS_Shift_plot_Sign+ 
+  ggtitle("Drowsy (Shift)")
+
+Combinedplot3 <- KSS_Non_plot_titled + KSS_Shift_plot_titled
+Combinedplot3
+```
+## Figure 4. Violin plots of PD for different driving modes for alert and drowsy drivers.
+```{r}
+### (1) Read and filter data
+EyeMovement <- read_excel("/Users/betty/Desktop/R Data Analysis/Data Sharing/Data.xlsx", sheet=5)
+EyeMovement$DriverState <- as.factor(EyeMovement$DriverState)
+EyeMovement$DrivingMode <- as.factor(EyeMovement$DrivingMode)
+EyeMovement_clean <- EyeMovement %>%
+  filter(!ScenarioType %in% c("S5"))
+
+
+### (2) Non (Alert)
+EyeMovement_clean_Non <- filter (EyeMovement_clean, DriverState == "Non")
+EyeMovement_clean_Non$DrivingMode <- factor(
+  EyeMovement_clean_Non$DrivingMode,
+  levels = c("Manual", "HandsOn", "HandsOff")
+)
+Model <- lmer(PD_Filtered_Mean~DrivingMode+(1|ID), data = EyeMovement_clean_Non)
+summary(Model)
+
+pwc <- EyeMovement_clean_Non %>% pairwise_t_test(PD_Filtered_Mean ~DrivingMode, p.adjust.method = "bonferroni", paired = TRUE) 
+pwc
+
+# assign colors in ggplot
+custom_colors <- c(
+ "Manual" = "#A2B5CD",
+ "HandsOn" = "#6CA6CD",
+ "HandsOff" = "#36648B"
+)
+
+# plot
+EyeMovement_clean_Non_plot <- EyeMovement_clean_Non %>%
+  ggplot(aes(x = DrivingMode, y = PD_Filtered_Mean, fill = DrivingMode)) +
+    geom_violin(width = 0.8, position = position_dodge(width = 0.9)) +
+    geom_boxplot(width = 0.1, color = "grey", alpha = 0.2, 
+                 position = position_dodge(width = 0.9)) +
+    scale_fill_manual(values = custom_colors) +
+    scale_y_continuous(breaks = 1:6, limits = c(0, 6), expand = c(0, 0))+
+    scale_x_discrete(expand = expansion(add = 0.6)) +
+    theme_classic() +
+    theme(
+      legend.position = "none", #
+      plot.title = element_text(size = 11),
+      panel.grid = element_blank(),             
+      axis.line = element_line(color = "black"), 
+      axis.ticks = element_line(color = "black"),
+      axis.text = element_text(color = "black"),  
+      axis.ticks.length = unit(-0.25, "cm"), 
+      axis.ticks.length.x = unit(-0.3, "cm"),  
+      axis.title.x = element_text(margin = margin(t = 10)),  
+      axis.title.y = element_text(margin = margin(r = 10))  
+      )+
+    xlab("Driving Mode") +
+    ylab("Pupil diameter (mm)")
+
+
+EyeMovement_clean_Non_plot_Sign<- EyeMovement_clean_Non_plot +
+  geom_signif(
+    xmin = 1, xmax = 3,
+    annotations = "*",  
+    y_position = 5.5,
+    tip_length = 0.03,
+    textsize = 6
+  )+
+   geom_signif(
+    xmin = 2, xmax = 3,
+    annotations = "*",  
+    y_position = 5,
+    tip_length = 0.03,
+    textsize = 6
+  )
+
+### (3) Shift
+EyeMovement_clean_Shift <- filter (EyeMovement_clean, DriverState == "Shift")
+EyeMovement_clean_Shift$DrivingMode <- factor(
+  EyeMovement_clean_Shift$DrivingMode,
+  levels = c("Manual", "HandsOn", "HandsOff")
+)
+
+Model <- lmer(PD_Filtered_Mean~DrivingMode+(1|ID), data = EyeMovement_clean_Shift)
+summary(Model)
+
+pwc <- EyeMovement_clean_Shift %>% pairwise_t_test(PD_Filtered_Mean ~DrivingMode, p.adjust.method = "bonferroni", paired = TRUE) 
+pwc
+
+
+# assign colors in ggplot
+custom_colors <- c(
+ "Manual" = "#A2B5CD",
+ "HandsOn" = "#6CA6CD",
+ "HandsOff" = "#36648B"
+)
+
+# plot
+EyeMovement_clean_Shift_plot <- EyeMovement_clean_Shift %>%
+  ggplot(aes(x = DrivingMode, y = PD_Filtered_Mean, fill = DrivingMode)) +
+    geom_violin(width = 0.8, position = position_dodge(width = 0.9)) +
+    geom_boxplot(width = 0.1, color = "grey", alpha = 0.2, 
+                 position = position_dodge(width = 0.9)) +
+    scale_fill_manual(values = custom_colors) +
+    scale_y_continuous(breaks = 1:6, limits = c(0, 6), expand = c(0, 0))+
+    scale_x_discrete(expand = expansion(add = 0.6)) +
+    theme_classic() +
+    theme(
+      plot.title = element_text(size = 11),
+      panel.grid = element_blank(),              
+      axis.line = element_line(color = "black"), 
+      axis.ticks = element_line(color = "black"),
+      axis.text = element_text(color = "black"),  
+      axis.ticks.length = unit(-0.25, "cm"), 
+      axis.ticks.length.x = unit(-0.3, "cm"),  
+      axis.title.x = element_text(margin = margin(t = 10)),  
+      axis.title.y = element_text(margin = margin(r = 10))   
+      )+
+    xlab("Driving Mode") +
+    ylab("Pupil diameter (mm)")
+EyeMovement_clean_Shift_plot
+
+EyeMovement_clean_Shift_plot_Sign<- EyeMovement_clean_Shift_plot +
+  geom_signif(
+    xmin = 1, xmax = 2,
+    annotations = "+",  
+    y_position = 5.5,
+    tip_length = 0.03,
+    textsize = 5
+  )
+
+EyeMovement_clean_Non_plot_Sign_titled <- EyeMovement_clean_Non_plot_Sign  + 
+  ggtitle("Alert (Non-shift)")
+
+EyeMovement_clean_Shift_plot_Sign_titled <- EyeMovement_clean_Shift_plot_Sign  + 
+  ggtitle("Drowsy (Shift)")
+
+Combinedplot4 <- EyeMovement_clean_Non_plot_Sign_titled + EyeMovement_clean_Shift_plot_Sign_titled
+Combinedplot4
+```
+
+## Figure 5. Mean and standard error of hazard identification miss rate for different driving modes for alert and drowsy drivers.
+```{r}
+### (1) Read and filter data
+EyeMovement$DriverState <- as.factor(EyeMovement$DriverState)
+EyeMovement$DrivingMode <- as.factor(EyeMovement$DrivingMode)
+EyeMovement$ScenarioType <- as.factor(EyeMovement$ScenarioType)
+
+EyeMovement_clean <- EyeMovement %>%
+  filter(!ScenarioType %in% c("S5"),
+         !is.na(Hazard_Identification))
+
+### (2) Non (Alert)
+EyeMovement_clean_Non <- filter(EyeMovement_clean, DriverState == "Non")
+EyeMovement_clean_Nonsum <- EyeMovement_clean %>%
+  filter(DriverState == "Non") %>%
+  group_by(DrivingMode) %>%
+  reframe(
+    Rate = 1-mean(Hazard_Identification, na.rm = TRUE),
+    N = n(),
+    SE = sqrt(Rate * (1 - Rate) / N)
+  )%>%
+  mutate(Rate1 = Rate * 100, SE1 = SE * 100) 
+
+EyeMovement_clean_Nonsum$DrivingMode <- factor(EyeMovement_clean_Nonsum$DrivingMode, levels = c("Manual", "HandsOn", "HandsOff"))
+  
+HDMR_Non_plot <- ggplot(EyeMovement_clean_Nonsum, aes(x = DrivingMode, y = Rate1, fill = DrivingMode)) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.9)) +
+  geom_errorbar(aes(ymin = Rate1 - SE1, ymax = Rate1 + SE1),
+                position = position_dodge(width = 0.9), width = 0.2) +
+  geom_text(aes(label = round(Rate1, 3)),
+            vjust = -6, size = 6) +
+  scale_fill_manual(values = c("Manual" = "#A2B5CD", "HandsOn" = "#6CA6CD", "HandsOff" = "#36648B")) +
+  scale_y_continuous(limits = c(0, 25), expand = c(0, 0)) + 
+  ylab("Hazard Identification Miss Rate (%)") +
+  theme_classic() +
+  theme(
+    legend.position = "none",
+    axis.line = element_line(color = "black"),  
+    axis.ticks = element_line(color = "black"),
+    axis.text = element_text(color = "black"),
+    axis.title = element_text(size = 16),
+    axis.ticks.length = unit(-0.25, "cm")  
+  )
+
+
+### (3) Shift group (Drowsy)
+EyeMovement_clean_Shift <- filter(EyeMovement_clean, DriverState == "Shift")
+EyeMovement_clean_Shiftsum <- EyeMovement_clean %>%
+  filter(DriverState == "Shift") %>%
+  group_by(DrivingMode) %>%
+  reframe(
+    Rate = 1-mean(Hazard_Identification, na.rm = TRUE),
+    N = n(),
+    SE = sqrt(Rate * (1 - Rate) / N)
+  )%>%
+  mutate(Rate1 = Rate * 100, SE1 = SE * 100) 
+
+EyeMovement_clean_Shiftsum$DrivingMode <- factor(EyeMovement_clean_Shiftsum$DrivingMode, levels = c("Manual", "HandsOn", "HandsOff"))
+  
+HDMR_Shift_plot<- ggplot(EyeMovement_clean_Shiftsum, aes(x = DrivingMode, y = Rate1, fill = DrivingMode)) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.9)) +
+  geom_errorbar(aes(ymin = Rate1 - SE1, ymax = Rate1 + SE1),
+                position = position_dodge(width = 0.9), width = 0.2) +
+  geom_text(aes(label = round(Rate1, 3)),
+            vjust = -6, size = 6) +
+  scale_fill_manual(values = c("Manual" = "#A2B5CD", "HandsOn" = "#6CA6CD", "HandsOff" = "#36648B")) +
+  scale_y_continuous(limits = c(0, 25), expand = c(0, 0)) +  
+  ylab("Hazard Identification Miss Rate (%)") +
+  theme_classic() +
+  theme(
+    legend.position = "none",
+    axis.line = element_line(color = "black"),  
+    axis.ticks = element_line(color = "black"),
+    axis.text = element_text(color = "black"),
+    axis.title = element_text(size = 16),
+    axis.ticks.length = unit(-0.25, "cm")  
+  )
+
+HDMR_Non_plot_titled <- HDMR_Non_plot + 
+  ggtitle("Alert (Non-shift)")
+
+HDMR_Shift_plot_titled <- HDMR_Shift_plot + 
+  ggtitle("Drowsy (Shift)")
+
+Combinedplot5 <- HDMR_Non_plot_titled + HDMR_Shift_plot_titled
+Combinedplot5
+```
+## Figure 6. Stacked bar plot of quantiles of time to first fixation on hazard for alert and drowsy drivers. (Quantiles were calculated according to different driving modes)
+```{r}
+### (1) Organize data
+EyeMovement_clean <- EyeMovement_clean %>%
+  mutate(
+    First_Hazard_Identification_Time = as.numeric(First_Hazard_Identification_Time)
+  )
+### (2) Classify Group
+df_plot <- EyeMovement_clean %>%
+  group_by(DrivingMode) %>%
+  mutate(
+    time_group = case_when(
+      is.na(First_Hazard_Identification_Time) ~ "Miss",
+      First_Hazard_Identification_Time <= quantile(First_Hazard_Identification_Time, 0.25, na.rm = TRUE) ~ "Q1 (0–25%)",
+      First_Hazard_Identification_Time <= quantile(First_Hazard_Identification_Time, 0.50, na.rm = TRUE) ~ "Q2 (25–50%)",
+      First_Hazard_Identification_Time <= quantile(First_Hazard_Identification_Time, 0.75, na.rm = TRUE) ~ "Q3 (50–75%)",
+      TRUE ~ "Q4 (75–100%)"
+    )
+  ) %>%
+  ungroup()
+
+### (3) Summarize and order
+summary_df <- df_plot %>%
+  group_by(DriverState, DrivingMode, time_group) %>%
+  summarise(count = n(), .groups = "drop") %>%
+  group_by(DriverState, DrivingMode) %>%
+  mutate(percent = count / sum(count) * 100)
+
+summary_df$time_group <- factor(summary_df$time_group,
+                                levels = c("Miss",
+                                           "Q4 (75–100%)",
+                                           "Q3 (50–75%)",
+                                           "Q2 (25–50%)",
+                                           "Q1 (0–25%)"))
+summary_df$DrivingMode <- factor(summary_df$DrivingMode,
+                                levels = c("Manual",
+                                           "HandsOn",
+                                           "HandsOff"))
+
+### (4) plot
+ggplot(summary_df, aes(x = DrivingMode, y = percent, fill = time_group)) +
+  geom_bar(stat = "identity", position = "stack", color = "black") +
+  facet_wrap(~ DriverState) +
+  scale_fill_manual(
+    values = c(
+      "Q1 (0–25%)" = "#2166AC",
+      "Q2 (25–50%)" = "#67A9CF",
+      "Q3 (50–75%)" = "#D1E5F0",
+      "Q4 (75–100%)" = "#FDD49E",
+      "Miss" = "grey70"
+    )
+  ) +
+  labs(x = "Driving Mode",
+       y = "Quantiles of Time to First Identification on Hazard",
+       fill = "Time Group",
+       title = "") +
+  theme_minimal(base_size = 14) +
+  theme(
+    panel.grid.major.x = element_blank(),
+    legend.position = "right",
+    strip.text = element_text(face = "bold")
+  )
+```
+## Figure 7. Contour plots of gaze based on participants’ gaze point along the X and Y axes
+```{r}
+### Read data
+setwd ("/Users/betty/Desktop/PDExtraction/Gaze_output")
+raw_gaze <- read.table("A_updated_with_progress.csv", header = TRUE, sep=",")
+head(raw_gaze)
+
+# DEFINE VARIABLE
+# DEFINE COLUMNS AS FACTOR (SUBJECT ID, RUN NUMBER,INDEPENDENT VARIABLES)
+raw_gaze$RunNumber <- factor (raw_gaze$RunNumber)
+raw_gaze$DriverState <- factor (raw_gaze$DriverState)
+raw_gaze$DrivingMode <- factor (raw_gaze$DrivingMode)
+
+# DEFINE COLUMNS AS NUMERIC (DEPENDENT VARIABLES)
+raw_gaze$Gaze.point.X<- as.numeric (raw_gaze$Gaze.point.X)
+raw_gaze$Gaze.point.Y<- as.numeric (raw_gaze$Gaze.point.Y)
+
+### Plot
+contour_plot <- ggplot(raw_gaze, mapping = aes(x = Gaze.point.X, y = Gaze.point.Y)) +
+  geom_density_2d(aes(color = after_stat(level)), alpha = 0.5, binwidth = .000000025)  +
+  facet_grid(DriverState ~ DrivingMode, scales = "fixed", labeller = label_both) +
+  scale_color_viridis_c(option = "C") +
+  scale_y_reverse() +
+  xlab("Gaze Point X (pixels)") +
+  ylab("Gaze Point Y (pixels)") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 12),
+        axis.line.x = element_line(color = "black", size = 0.8),
+        axis.line.y = element_line(color = "black", size = 0.8),
+        axis.ticks = element_line(color = "black", size = 0.8),  
+        axis.ticks.length = unit(0.2, "cm"),  
+        axis.title.y = element_text(face="bold", colour="black", size = 12),
+        axis.title.x = element_text(face="bold", colour="black", size = 12),
+        strip.text = element_text (size = 10),
+        axis.text.x = element_text(face = "bold", color = "black", size = 12, angle = 0, hjust = 1),  
+        axis.text.y = element_text(face = "bold", color = "black", size = 12, angle = 0),
+        panel.border = element_rect(color = "black", fill = NA, size = 1),
+        panel.grid = element_blank(),
+        legend.position = "none")
+contour_plot
+```
+
+## Figure 8a). Mean and standard error of SD of horizontal gaze for different driving modes for alert and drowsy drivers.
+```{r}
+### (1) Read data
+GazeSD <- read_excel("/Users/betty/Desktop/R Data Analysis/Data Sharing/Data.xlsx", sheet=6)
+GazeSD$DriverState <- as.factor(GazeSD$DriverState)
+GazeSD$DrivingMode <- as.factor(GazeSD$DrivingMode)
+
+
+### (2) Non (Alert)
+GazeSD_Non <- filter(GazeSD, DriverState == "Non")
+GazeSD_Non $DrivingMode <- factor(GazeSD_Non $DrivingMode, levels = c("Manual", "HandsOn", "HandsOff"))
+
+# assign colors in ggplot
+custom_colors <- c(
+ "Manual" = "#A2B5CD",
+ "HandsOn" = "#6CA6CD",
+ "HandsOff" = "#36648B"
+)
+
+# plot
+GazeX_Non_plot <- GazeSD_Non %>%
+  ggplot(aes(x = DrivingMode, y = Gaze_X_STD, fill = DrivingMode)) +
+    geom_violin(width = 1, position = position_dodge(width = 0.9)) +
+    geom_boxplot(width = 0.1, color = "grey", alpha = 0.2, 
+                 position = position_dodge(width = 0.9)) +
+    scale_fill_manual(values = custom_colors) +
+    scale_y_continuous(breaks = c(0, 25, 50, 75, 100, 125, 150, 175, 200), limits = c(0, 200), expand = c(0, 0))+
+    scale_x_discrete(expand = expansion(add = 0.6)) +
+    theme_classic() +
+    theme(
+      legend.position = "none", 
+      plot.title = element_text(size = 11),
+      panel.grid = element_blank(),             
+      axis.line = element_line(color = "black"), 
+      axis.ticks = element_line(color = "black"),
+      axis.text = element_text(color = "black"),  
+      axis.ticks.length = unit(-0.2, "cm"),
+      axis.ticks.length.x = unit(-0.2, "cm"),  
+      axis.title.x = element_text(margin = margin(t = 10)),  
+      axis.title.y = element_text(margin = margin(r = 10))   
+      )+
+    xlab("Driving Mode") +
+    ylab("SD of horizontal gaze point (x axis)")
+
+
+# Sign
+GazeX_Non_plot_Sign <- GazeX_Non_plot  +
+  geom_signif(
+    xmin = 1, xmax = 2,
+    annotations = "**",  
+    y_position = 177,
+    tip_length = 0.03,
+    textsize = 6
+  )+
+   geom_signif(
+    xmin = 1, xmax = 3,
+    annotations = "***",  
+    y_position = 189,
+    tip_length = 0.03,
+    textsize = 6
+  )
+
+
+### (3) Shift (Drowsy)
+GazeSD_Shift <- filter(GazeSD, DriverState == "Shift")
+GazeSD_Shift $DrivingMode <- factor(GazeSD_Shift $DrivingMode, levels = c("Manual", "HandsOn", "HandsOff"))
+
+# assign colors in ggplot
+custom_colors <- c(
+ "Manual" = "#A2B5CD",
+ "HandsOn" = "#6CA6CD",
+ "HandsOff" = "#36648B"
+)
+
+# plot
+GazeX_Shift_plot <- GazeSD_Shift %>%
+  ggplot(aes(x = DrivingMode, y = Gaze_X_STD, fill = DrivingMode)) +
+    geom_violin(width = 1, position = position_dodge(width = 0.9)) +
+    geom_boxplot(width = 0.1, color = "grey", alpha = 0.2, 
+                 position = position_dodge(width = 0.9)) +
+    scale_fill_manual(values = custom_colors) +
+    scale_y_continuous(breaks = c(0, 25, 50, 75, 100, 125, 150, 175, 200), limits = c(0, 200), expand = c(0, 0))+
+    scale_x_discrete(expand = expansion(add = 0.6)) +
+    theme_classic() +
+    theme(
+      plot.title = element_text(size = 11),
+      panel.grid = element_blank(),              
+      axis.line = element_line(color = "black"),
+      axis.ticks = element_line(color = "black"),
+      axis.text = element_text(color = "black"),  
+      axis.ticks.length = unit(-0.2, "cm"),
+      axis.ticks.length.x = unit(-0.2, "cm"),  
+      axis.title.x = element_text(margin = margin(t = 10)),  
+      axis.title.y = element_text(margin = margin(r = 10))   
+      )+
+    xlab("Driving Mode") +
+    ylab("SD of horizontal gaze point (x axis)")
+
+
+# Sign
+GazeX_Shift_plot_Sign <- GazeX_Shift_plot  +
+  geom_signif(
+    xmin = 1, xmax = 2,
+    annotations = "**",  
+    y_position = 178,
+    tip_length = 0.03,
+    textsize = 5
+  )+
+   geom_signif(
+    xmin = 1, xmax = 3,
+    annotations = "***",  
+    y_position = 190,
+    tip_length = 0.03,
+    textsize = 5
+  )
+
+
+GazeX_Non_plot_titled <- GazeX_Non_plot_Sign + 
+  ggtitle("Alert (Non-shift)")
+
+GazeX_Shift_plot_titled <- GazeX_Shift_plot_Sign + 
+  ggtitle("Drowsy (Shift)")
+
+Combinedplot8a <- GazeX_Non_plot_titled + GazeX_Shift_plot_titled
+Combinedplot8a
+```
+
+## Figure 8b). Mean and standard error of SD of vertical gaze for different driving modes for alert and drowsy drivers.
+```{r}
+### (1) Read data
+GazeSD <- read_excel("/Users/betty/Desktop/R Data Analysis/Data Sharing/Data.xlsx", sheet=6)
+GazeSD$DriverState <- as.factor(GazeSD$DriverState)
+GazeSD$DrivingMode <- as.factor(GazeSD$DrivingMode)
+
+### (2) Non(Alert)
+GazeSD_Non <- filter(GazeSD, DriverState == "Non")
+GazeSD_Non $DrivingMode <- factor(GazeSD_Non $DrivingMode, levels = c("Manual", "HandsOn", "HandsOff"))
+
+# assign colors in ggplot
+custom_colors <- c(
+ "Manual" = "#A2B5CD",
+ "HandsOn" = "#6CA6CD",
+ "HandsOff" = "#36648B"
+)
+
+# plot
+GazeY_Non_plot <- GazeSD_Non %>%
+  ggplot(aes(x = DrivingMode, y = Gaze_Y_STD, fill = DrivingMode)) +
+    geom_violin(width = 1, position = position_dodge(width = 0.9)) +
+    geom_boxplot(width = 0.1, color = "grey", alpha = 0.2, 
+                 position = position_dodge(width = 0.9)) +
+    scale_fill_manual(values = custom_colors) +
+    scale_y_continuous(breaks = c(0, 25, 50, 75, 100, 125, 150, 175, 200), limits = c(0, 200), expand = c(0, 0))+
+    scale_x_discrete(expand = expansion(add = 0.6)) +
+    theme_classic() +
+    theme(
+      legend.position = "none", 
+      plot.title = element_text(size = 11),
+      panel.grid = element_blank(),              
+      axis.line = element_line(color = "black"), 
+      axis.ticks = element_line(color = "black"),
+      axis.text = element_text(color = "black"),   
+      axis.ticks.length = unit(-0.2, "cm"), 
+      axis.ticks.length.x = unit(-0.2, "cm"),  
+      axis.title.x = element_text(margin = margin(t = 10)),  
+      axis.title.y = element_text(margin = margin(r = 10))   
+      )+
+    xlab("Driving Mode") +
+    ylab("SD of vertical gaze point (y axis)")
+
+
+# Sign
+GazeY_Non_plot_Sign <- GazeY_Non_plot  +
+  geom_signif(
+    xmin = 1, xmax = 2,
+    annotations = "**",  
+    y_position = 177,
+    tip_length = 0.03,
+    textsize = 6
+  )+
+   geom_signif(
+    xmin = 1, xmax = 3,
+    annotations = "***",  
+    y_position = 189,
+    tip_length = 0.03,
+    textsize = 6
+  )
+
+
+### (3) Shift (Drowsy)
+GazeSD_Shift <- filter(GazeSD, DriverState == "Shift")
+GazeSD_Shift $DrivingMode <- factor(GazeSD_Shift $DrivingMode, levels = c("Manual", "HandsOn", "HandsOff"))
+
+# assign colors in ggplot
+custom_colors <- c(
+ "Manual" = "#A2B5CD",
+ "HandsOn" = "#6CA6CD",
+ "HandsOff" = "#36648B"
+)
+
+# plot
+GazeY_Shift_plot <- GazeSD_Shift %>%
+  ggplot(aes(x = DrivingMode, y = Gaze_Y_STD, fill = DrivingMode)) +
+    geom_violin(width = 1, position = position_dodge(width = 0.9)) +
+    geom_boxplot(width = 0.1, color = "grey", alpha = 0.2, 
+                 position = position_dodge(width = 0.9)) +
+    scale_fill_manual(values = custom_colors) +
+    scale_y_continuous(breaks = c(0, 25, 50, 75, 100, 125, 150, 175, 200), limits = c(0, 200), expand = c(0, 0))+
+    scale_x_discrete(expand = expansion(add = 0.6)) +
+    theme_classic() +
+    theme(
+      plot.title = element_text(size = 11),
+      panel.grid = element_blank(),             
+      axis.line = element_line(color = "black"), 
+      axis.ticks = element_line(color = "black"),
+      axis.text = element_text(color = "black"),  
+      axis.ticks.length = unit(-0.2, "cm"), 
+      axis.ticks.length.x = unit(-0.2, "cm"),  
+      axis.title.x = element_text(margin = margin(t = 10)),  
+      axis.title.y = element_text(margin = margin(r = 10))   
+      )+
+    xlab("Driving Mode") +
+    ylab("SD of vertical gaze point (y axis)")
+
+
+# Sign
+GazeY_Shift_plot_Sign <- GazeY_Shift_plot  +
+  geom_signif(
+    xmin = 1, xmax = 2,
+    annotations = "**",  
+    y_position = 175,
+    tip_length = 0.03,
+    textsize = 6
+  )+
+   geom_signif(
+    xmin = 1, xmax = 3,
+    annotations = "***",  
+    y_position = 188,
+    tip_length = 0.03,
+    textsize = 6
+  )
+
+GazeY_Non_plot_titled <- GazeY_Non_plot_Sign + 
+  ggtitle("Alert (Non-shift)")
+
+GazeY_Shift_plot_titled <- GazeY_Shift_plot_Sign + 
+  ggtitle("Drowsy (Shift)")
+
+Combinedplot8b <- GazeY_Non_plot_titled + GazeY_Shift_plot_titled
+Combinedplot8b
+```
+## Figure 9. Mean and standard error of response output (rate) for different driving modes for alert and drowsy drivers.
+```{r}
+### (1) Read data
+DrivingPerformance <- read_excel("/Users/betty/Desktop/R Data Analysis/Data Sharing/Data.xlsx", sheet=4)
+Response_clean<- DrivingPerformance  %>%
+  filter(!ScenarioType %in% c("S5")) 
+
+### (2) Non shift group
+Response_clean_Non <- filter(Response_clean, DriverState == "Non")
+Response_clean_Nonsum <- Response_clean %>%
+  filter(DriverState == "Non") %>%
+  group_by(DrivingMode) %>%
+  reframe(
+    Rate = mean(RespondOrNot, na.rm = TRUE),
+    N = n(),
+    SE = sqrt(Rate * (1 - Rate) / N)
+  )%>%
+  mutate(Rate1 = Rate * 100, SE1 = SE * 100) 
+
+Response_clean_Nonsum$DrivingMode <- factor(Response_clean_Nonsum$DrivingMode, levels = c("Manual", "HandsOn", "HandsOff"))
+  
+Response_Non_plot <- ggplot(Response_clean_Nonsum, aes(x = DrivingMode, y = Rate1, fill = DrivingMode)) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.9)) +
+  geom_errorbar(aes(ymin = Rate1 - SE1, ymax = Rate1 + SE1),
+                position = position_dodge(width = 0.9), width = 0.2) +
+  geom_text(aes(label = round(Rate1, 3)),
+            vjust = -6, size = 5) +
+  scale_fill_manual(values = c("Manual" = "#A2B5CD", "HandsOn" = "#6CA6CD", "HandsOff" = "#36648B")) +
+  scale_y_continuous(limits = c(0, 100), expand = c(0, 0)) +  
+  ylab("Response Rate (%)") +
+  theme_classic() +
+  theme(
+    legend.position = "none",
+    axis.line = element_line(color = "black"),  
+    axis.ticks = element_line(color = "black"),
+    axis.text = element_text(color = "black"),
+    axis.title = element_text(size = 12),
+    axis.ticks.length = unit(-0.25, "cm"),
+    axis.title.x = element_text(margin = margin(t = 10)),  
+      axis.title.y = element_text(margin = margin(r = 10))  
+  )
+
+
+Response_Non_plot_Sign <- Response_Non_plot +
+  geom_signif(
+    xmin = 1, xmax = 3,
+    annotations = "*",
+    y_position = 80,
+    tip_length = 0.15,
+    textsize = 10
+  ) 
+
+
+### (3) Shift group
+Response_clean_Shift <- filter(Response_clean, DriverState == "Shift")
+Response_clean_Shiftsum <- Response_clean %>%
+  filter(DriverState == "Shift") %>%
+  group_by(DrivingMode) %>%
+  reframe(
+    Rate = mean(RespondOrNot, na.rm = TRUE),
+    N = n(),
+    SE = sqrt(Rate * (1 - Rate) / N)
+  )%>%
+  mutate(Rate1 = Rate * 100, SE1 = SE * 100) 
+
+Response_clean_Shiftsum$DrivingMode <- factor(Response_clean_Shiftsum$DrivingMode, levels = c("Manual", "HandsOn", "HandsOff"))
+  
+Response_Shift_plot <- ggplot(Response_clean_Shiftsum, aes(x = DrivingMode, y = Rate1, fill = DrivingMode)) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.9)) +
+  geom_errorbar(aes(ymin = Rate1 - SE1, ymax = Rate1 + SE1),
+                position = position_dodge(width = 0.9), width = 0.2) +
+  geom_text(aes(label = round(Rate1, 3)),
+            vjust = -6, size = 5) +
+  scale_fill_manual(values = c("Manual" = "#A2B5CD", "HandsOn" = "#6CA6CD", "HandsOff" = "#36648B")) +
+  scale_y_continuous(limits = c(0, 100), expand = c(0, 0)) +  
+  ylab("Response Rate (%)") +
+  theme_classic() +
+  theme(
+    legend.position = "none", 
+    axis.line = element_line(color = "black"),  
+    axis.ticks = element_line(color = "black"),
+    axis.text = element_text(color = "black"),
+    axis.title = element_text(size = 15),
+    axis.ticks.length = unit(-0.25, "cm"),
+    axis.title.x = element_text(margin = margin(t = 10)), 
+      axis.title.y = element_text(margin = margin(r = 10))   
+  )
+
+
+Combinedplot9 <- Response_Non_plot_Sign + Response_Shift_plot
+Combinedplot9
+```
+
+
+## Figure 10. Mean and standard error of collision outcome (rate) for different driving modes for alert and drowsy drivers.
+```{r}
+### (1) Read data
+DrivingPerformance <- read_excel("/Users/betty/Desktop/R Data Analysis/Data Sharing/Data.xlsx", sheet=4)
+Collision_clean<- DrivingPerformance  %>%
+  filter(ScenarioSequence == "6")
+
+Collision_clean_GT <- Collision_clean %>%
+  group_by(DriverState) %>%
+  reframe(
+    Rate = mean(CollisionOrNot, na.rm = TRUE),
+    N = n(),
+    SE = sqrt(Rate * (1 - Rate) / N)
+  )%>%
+  mutate(Rate1 = Rate * 100, SE1 = SE * 100) 
+Collision_clean_GT$DriverState <- factor(Collision_clean_GT$DriverState, levels = c("Non", "Shift"))
+
+
+### (2) Non shift group
+Collision_clean_Non <- filter(Collision_clean, DriverState == "Non")
+Collision_clean_Nonsum <- Collision_clean %>%
+  filter(DriverState == "Non") %>%
+  group_by(DrivingMode) %>%
+  reframe(
+    Rate = mean(CollisionOrNot, na.rm = TRUE),
+    N = n(),
+    SE = sqrt(Rate * (1 - Rate) / N)
+  )%>%
+  mutate(Rate1 = Rate * 100, SE1 = SE * 100) 
+
+
+Collision_clean_Nonsum$DrivingMode <- factor(Collision_clean_Nonsum$DrivingMode, levels = c("Manual", "HandsOn", "HandsOff"))
+  
+Collision_Non_plot <- ggplot(Collision_clean_Nonsum, aes(x = DrivingMode, y = Rate1, fill = DrivingMode)) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.9)) +
+  geom_errorbar(aes(ymin = Rate1 - SE1, ymax = Rate1 + SE1),
+                position = position_dodge(width = 0.9), width = 0.2) +
+  geom_text(aes(label = round(Rate1, 3)),
+            vjust = -6, size = 5) +
+  scale_fill_manual(values = c("Manual" = "#A2B5CD", "HandsOn" = "#6CA6CD", "HandsOff" = "#36648B")) +
+  scale_y_continuous(limits = c(0, 100), expand = c(0, 0)) +  
+  ylab("Collision Rate (%)") +
+  theme_classic() +
+  theme(
+    legend.position = "none", 
+    axis.line = element_line(color = "black"),  
+    axis.ticks = element_line(color = "black"),
+    axis.text = element_text(color = "black"),
+    axis.title = element_text(size = 12),
+    axis.ticks.length = unit(-0.25, "cm"),
+    axis.title.x = element_text(margin = margin(t = 10)),  
+      axis.title.y = element_text(margin = margin(r = 10))  
+  )
+
+
+### (3) Shift group
+Collision_clean_Shift <- filter(Collision_clean, DriverState == "Shift")
+Collision_clean_Shiftsum <- Collision_clean %>%
+  filter(DriverState == "Shift") %>%
+  group_by(DrivingMode) %>%
+  reframe(
+    Rate = mean(CollisionOrNot, na.rm = TRUE),
+    N = n(),
+    SE = sqrt(Rate * (1 - Rate) / N)
+  )%>%
+  mutate(Rate1 = Rate * 100, SE1 = SE * 100) 
+
+Collision_clean_Shiftsum$DrivingMode <- factor(Collision_clean_Shiftsum$DrivingMode, levels = c("Manual", "HandsOn", "HandsOff"))
+  
+Collision_Shift_plot <- ggplot(Collision_clean_Shiftsum, aes(x = DrivingMode, y = Rate1, fill = DrivingMode)) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.9)) +
+  geom_errorbar(aes(ymin = Rate1 - SE1, ymax = Rate1 + SE1),
+                position = position_dodge(width = 0.9), width = 0.2) +
+  geom_text(aes(label = round(Rate1, 3)),
+            vjust = -6, size = 5) +
+  scale_fill_manual(values = c("Manual" = "#A2B5CD", "HandsOn" = "#6CA6CD", "HandsOff" = "#36648B")) +
+  scale_y_continuous(limits = c(0, 100), expand = c(0, 0)) +  
+  ylab("Collision Rate (%)") +
+  theme_classic() +
+  theme(
+    legend.position = "Shifte",
+    axis.line = element_line(color = "black"),  
+    axis.ticks = element_line(color = "black"),
+    axis.text = element_text(color = "black"),
+    axis.title = element_text(size = 12),
+    axis.ticks.length = unit(-0.25, "cm"),
+    axis.title.x = element_text(margin = margin(t = 10)), 
+    axis.title.y = element_text(margin = margin(r = 10))  
+  )
+
+
+# Sign
+Collision_Shift_plot_Sign <- Collision_Shift_plot +
+  geom_signif(
+    xmin = 1, xmax = 3,
+    annotations = "*",
+    y_position = 80,
+    tip_length = 0.1,
+    textsize = 12
+  ) 
+
+Collision_Non_plot_titled <- Collision_Non_plot + 
+  ggtitle("Alert (Non-shift)")
+
+Collision_Shift_plot_Sign_titled <- Collision_Shift_plot_Sign + 
+  ggtitle("Drowsy (Shift)")
+
+Combinedplot3 <- Collision_Non_plot_titled + Collision_Shift_plot_Sign_titled
+Combinedplot3
+
+```
+
+
+## Figure 11. Violin plot of TTC response in different driving modes for alert and drowsy drivers. 
+```{r}
+### (1) Read data
+DrivingPerformance <- read_excel("/Users/betty/Desktop/Data.xlsx", sheet=4)
+Response_TTC_S6 <- filter(DrivingPerformance,ScenarioSequence=="6" & RespondOrNot =="1") 
+
+Response_TTC_S6 $DrivingMode <- factor(Response_TTC_S6 $DrivingMode, levels = c("Manual", "HandsOn", "HandsOff"))
+
+# assign colors in ggplot
+custom_colors <- c(
+ "Manual" = "#A2B5CD",
+ "HandsOn" = "#6CA6CD",
+ "HandsOff" = "#36648B"
+)
+
+### (2) NonShift
+Response_TTC_S6_Non<- filter(Response_TTC_S6, GroupType =="Non")  
+
+Response_TTC_S6_Non$DrivingMode <- factor(Response_TTC_S6_Non$DrivingMode, levels = c("Manual", "HandsOn", "HandsOff"))
+
+# assign colors in ggplot
+custom_colors <- c(
+  "Manual" = "#A2B5CD",
+  "HandsOn" = "#6CA6CD",
+  "HandsOff" = "#36648B"
+)
+
+# plot
+Response_TTC_S6_Non_plot <- Response_TTC_S6_Non %>%
+  ggplot(aes(x = DrivingMode, y = Response_TTC_Value, fill = DrivingMode)) +
+    geom_violin(width = 1, position = position_dodge(width = 0.9)) +
+    geom_boxplot(width = 0.1, color = "grey", alpha = 0.2, 
+                 position = position_dodge(width = 0.9)) +
+    scale_fill_manual(values = custom_colors) +
+    scale_y_continuous(breaks = 1:23, limits = c(0, 25), expand = c(0, 0))+
+    scale_x_discrete(expand = expansion(add = 0.6)) +
+    theme_classic() +
+    theme(
+      legend.position = "none", 
+      plot.title = element_text(size = 11),
+      panel.grid = element_blank(),              
+      axis.line = element_line(color = "black"), 
+      axis.ticks = element_line(color = "black"),
+      axis.text = element_text(color = "black"),  
+      axis.ticks.length = unit(-0.25, "cm"), 
+      axis.ticks.length.x = unit(-0.3, "cm"),  
+      axis.title.x = element_text(margin = margin(t = 10)),  
+      axis.title.y = element_text(margin = margin(r = 10))   
+      )+
+    xlab("Driving Mode") +
+    ylab("Response TTC Values(s)")
+
+
+# Sign
+Response_TTC_S6_Non_plot_Sign <- Response_TTC_S6_Non_plot  +
+  geom_signif(
+    xmin = 1, xmax = 3,
+    annotations = "**",  
+    y_position = 22,
+    tip_length = 0.03,
+    textsize = 8
+  )+
+    geom_signif(
+    xmin = 1, xmax = 2,
+    annotations = "*",  
+    y_position = 20,
+    tip_length = 0.03,
+    textsize = 8
+  )
+
+### (3) Shift
+Response_TTC_S6_Shift<- filter(Response_TTC_S6, GroupType =="Shift")  
+Response_TTC_S6_Shift$DrivingMode <- factor(Response_TTC_S6_Shift$DrivingMode, levels = c("Manual", "HandsOn", "HandsOff"))
+
+# assign colors in ggplot
+custom_colors <- c(
+  "Manual" = "#A2B5CD",
+  "HandsOn" = "#6CA6CD",
+  "HandsOff" = "#36648B"
+)
+
+# plot
+Response_TTC_S6_Shift_plot <- Response_TTC_S6_Shift %>%
+  ggplot(aes(x = DrivingMode, y = Response_TTC_Value, fill = DrivingMode)) +
+    geom_violin(width = 1, position = position_dodge(width = 0.9)) +
+    geom_boxplot(width = 0.1, color = "grey", alpha = 0.2, 
+                 position = position_dodge(width = 0.9)) +
+    scale_fill_manual(values = custom_colors) +
+    scale_y_continuous(breaks = 1:23, limits = c(0, 25), expand = c(0, 0))+
+    scale_x_discrete(expand = expansion(add = 0.6)) +
+    theme_classic() +
+    theme(
+      legend.position = "none", 
+      plot.title = element_text(size = 11),
+      panel.grid = element_blank(),              
+      axis.line = element_line(color = "black"), 
+      axis.ticks = element_line(color = "black"),
+      axis.text = element_text(color = "black"),  
+      axis.ticks.length = unit(-0.25, "cm"), 
+      axis.ticks.length.x = unit(-0.3, "cm"),  
+      axis.title.x = element_text(margin = margin(t = 10)),  
+      axis.title.y = element_text(margin = margin(r = 10))   
+      )+
+    xlab("Driving Mode") +
+    ylab("Response TTC Values(s)")
+
+
+Response_TTC_S6_Non_plot_Sign_titled <- Response_TTC_S6_Non_plot_Sign + 
+  ggtitle("Alert (Non-shift)")
+
+Response_TTC_S6_Shift_plot_titled <- Response_TTC_S6_Shift_plot + 
+  ggtitle("Drowsy (Shift)")
+
+Combinedplot11 <- Response_TTC_S6_Non_plot_Sign_titled + Response_TTC_S6_Shift_plot_titled 
+Combinedplot11
+```
+
+
+
+
+
+
+
+
+
+
+
+

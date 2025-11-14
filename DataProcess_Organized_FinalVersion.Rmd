@@ -1,0 +1,1131 @@
+---
+title: "Effect of drving mode (Manual vs. Hands-on vs. Hands-off) and driver state (Drowsy-night shift workers vs. Alert-non-night shift workers) on sleepiness, hazard perception performance, and drving safety"
+
+output: 
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float: true
+date: '2025-08-05'
+---
+
+## Load packages
+```{r}
+if(!require(readxl)) install.packages("readxl")
+library(readxl)
+
+if(!require(rstatix)) install.packages("rstatix")
+library(rstatix)
+
+if(!require(emmeans)) install.packages("emmeans")
+library(emmeans)
+
+if(!require(ggplot2)) install.packages("ggplot2")
+library(ggplot2)
+
+if(!require(lme4)) install.packages("lme4")
+library(lme4)
+
+if(!require(lmerTest)) install.packages("lmerTest")
+library(lmerTest)
+
+if(!require(afex)) install.packages("afex")
+library(afex)
+
+if(!require(dplyr)) install.packages("dplyr")
+library(dplyr)
+
+if(!require(car)) install.packages("car")
+
+
+if(!require(brglm)) install.packages("brglm")
+library(brglm)
+
+if(!require(brglm2)) install.packages("brglm")
+library(brglm2)
+
+if(!require(car)) install.packages("brglm")
+library(car)
+```
+
+
+# 1. Demographics
+### 1.0 Read data
+```{r setup, include=FALSE}
+ParDemo<- read_excel("/Users/betty/Desktop/R Data Analysis/Data.xlsx", sheet=1)
+Sleepiness <- read_excel("/Users/betty/Desktop/R Data Analysis/Data.xlsx", sheet=2)
+ParDemo$DriverState <- as.factor(ParDemo$DriverState)
+Sleepiness$DriverState <- as.factor(Sleepiness$DriverState)
+```
+
+### 1.1 AwakeDuration
+```{r, include=FALSE}
+AwakeDuration.ttest<- t.test(AwakeDuration~DriverState, data = ParDemo,  var.equal = TRUE)  
+AwakeDuration.ttest
+
+tapply(ParDemo$AwakeDuration, ParDemo$DriverState, mean, na.rm = T)  
+tapply(ParDemo$AwakeDuration, ParDemo$DriverState, sd, na.rm = T)  
+```
+
+### 1.2 Age
+```{r, include=FALSE}
+Age.ttest<- t.test(Age~DriverState, data = ParDemo,  var.equal = TRUE)  
+Age.ttest
+
+tapply(ParDemo$Age, ParDemo$DriverState, mean, na.rm = T)  
+tapply(ParDemo$Age, ParDemo$DriverState, sd, na.rm = T)  
+```
+
+### 1.3 AnnualMileage
+```{r, include=FALSE}
+AnnualMileage.ttest<- t.test(AnnualMileage~DriverState, data = ParDemo,  var.equal = TRUE) 
+AnnualMileage.ttest
+
+tapply(ParDemo$AnnualMileage, ParDemo$DriverState, mean, na.rm = T)  
+tapply(ParDemo$AnnualMileage, ParDemo$DriverState, sd, na.rm = T)  
+```
+
+### 1.4 DrivingYears
+```{r, include=FALSE}
+DrivingYears.ttest<- t.test(DrivingYears~DriverState, data = ParDemo,  var.equal = TRUE) 
+DrivingYears.ttest
+
+tapply(ParDemo$DrivingYears, ParDemo$DriverState, mean, na.rm = T)  
+tapply(ParDemo$DrivingYears, ParDemo$DriverState, sd, na.rm = T)  
+```
+
+### 1.5 Sleepiness
+```{r, include=FALSE}
+Sleepiness.ttest<- t.test(TotalScores~DriverState, data = Sleepiness,  var.equal = TRUE)  
+Sleepiness.ttest
+
+tapply(Sleepiness$TotalScores, Sleepiness$DriverState, mean, na.rm = T)  
+tapply(Sleepiness$TotalScores, Sleepiness$DriverState, sd, na.rm = T)  
+```
+
+# 2. KSS
+### 2.0 Read data
+```{r}
+KSS <- read_excel("/Users/betty/Desktop/R Data Analysis/Data.xlsx", sheet=3)
+KSS$BeforeAfter <- as.factor(KSS$BeforeAfter)
+KSS$DriverState <- as.factor(KSS$DriverState)
+KSS$DrivingMode <- as.factor(KSS$DrivingMode)
+```
+
+### 2.1 General model
+```{r}
+# Run model
+LMM_Model <- lmer(data = KSS, KSSScores ~ BeforeAfter + DriverState + DrivingMode + DriverState * DrivingMode + DriverState * BeforeAfter + BeforeAfter * DrivingMode +(1|ID) )
+summary(LMM_Model)
+anova_res <- anova(LMM_Model, type = 3)
+anova_res
+eta_sq <- effectsize::eta_squared(anova_res, partial = TRUE)
+eta_sq
+
+
+# Hypothesis testing
+## QQ plot for residual
+res_lmmodel <- residuals(LMM_Model)
+qqnorm(res_lmmodel) 
+## KS test for residual
+ks.test(res_lmmodel, "pnorm", mean(res_lmmodel), sd(res_lmmodel))
+## Levene’s test for residual
+leveneTest(res_lmmodel, KSS$DriverState)
+leveneTest(res_lmmodel, KSS$DrivingMode)
+
+# Main effect of BeforeAfter
+pwc <- KSS%>% pairwise_t_test(KSSScores ~ BeforeAfter, p.adjust.method = "bonferroni", paired = TRUE) 
+pwc
+# Mean BeforeAfter
+tapply(KSS$KSSScores, KSS$BeforeAfter, mean, na.rm = T)  
+tapply(KSS$KSSScores, KSS$BeforeAfter, sd, na.rm = T)  
+
+
+# Main effect of DriverState
+pwc <- KSS %>% emmeans_test(KSSScores ~ DriverState, p.adjust.method = "bonferroni") 
+pwc
+## Mean DriverState
+tapply(KSS$KSSScores, KSS$DriverState, mean, na.rm = T)  
+tapply(KSS$KSSScores, KSS$DriverState, sd, na.rm = T)  
+
+
+# Main effect of DrivingMode
+pwc <- KSS %>% pairwise_t_test(KSSScores ~ DrivingMode, p.adjust.method = "bonferroni", paired = TRUE) 
+pwc
+# Mean DrivingMode
+tapply(KSS$KSSScores, KSS$DrivingMode, mean, na.rm = T)  
+tapply(KSS$KSSScores, KSS$DrivingMode, sd, na.rm = T)  
+
+
+# Mean_DriverState*DrivingMode
+KSS %>%
+  group_by(DriverState, DrivingMode) %>%
+  get_summary_stats(KSSScores, type = "mean_sd")
+
+KSS %>%
+  group_by(DriverState, BeforeAfter, DrivingMode) %>%
+  summarise(
+    mean = mean(KSSScores, na.rm = TRUE),
+    sd = sd(KSSScores, na.rm = TRUE),
+    n = sum(!is.na(KSSScores)),
+    se = sd / sqrt(n)
+  )
+```
+
+### 2.2 Before
+```{r}
+# Filter
+KSS_Before<- filter(KSS,BeforeAfter =="before") 
+
+# Run Model
+Before_LMM_Model <- lmer(data = KSS_Before, KSSScores ~ DriverState + DrivingMode +DriverState * DrivingMode +(1|ID) )
+summary(Before_LMM_Model)
+anova_res <- anova(Before_LMM_Model)
+Effectsize <- partial_eta_squared(anova_res)
+Effectsize
+
+# Hypothesis testing
+## QQ plot for residual
+res_lmmodel <- residuals(Before_LMM_Model)
+qqnorm(res_lmmodel) 
+## KS test for residual
+ks.test(res_lmmodel, "pnorm", mean(res_lmmodel), sd(res_lmmodel))
+## Levene’s test for residual
+
+leveneTest(res_lmmodel, KSS_Before$DriverState)
+leveneTest(res_lmmodel, KSS_Before$DrivingMode)
+
+
+# Simple Effect Analysis_by DrivingMode
+filter_Manual <- filter(KSS_Before, DrivingMode =="Manual") 
+pwc <- filter_Manual %>% emmeans_test(KSSScores ~ DriverState, p.adjust.method = "bonferroni") 
+pwc
+
+filter_HandsOn <- filter(KSS_Before, DrivingMode =="HandsOn") 
+pwc <- filter_HandsOn %>% emmeans_test(KSSScores ~ DriverState, p.adjust.method = "bonferroni") 
+pwc
+
+filter_HandsOff <- filter(KSS_Before, DrivingMode =="HandsOff") 
+pwc <- filter_HandsOff %>% emmeans_test(KSSScores ~ DriverState, p.adjust.method = "bonferroni") 
+pwc
+
+# Mean_DriverState*DrivingMode
+KSS_Before %>%
+  group_by(DriverState, DrivingMode) %>%
+  get_summary_stats(KSSScores, type = "mean_sd")
+
+
+KSS_Before %>%
+  group_by(DriverState, DrivingMode) %>%
+  summarise(
+    mean = mean(KSSScores, na.rm = TRUE),
+    sd = sd(KSSScores, na.rm = TRUE),
+    n = sum(!is.na(KSSScores)),
+    se = sd / sqrt(n)
+  )
+
+```
+
+### 2.3 After
+```{r}
+# Filter
+KSS_After<- filter(KSS,BeforeAfter =="after") 
+
+# Run model
+After_LMM_Model <- lmer(data = KSS_After, KSSScores ~ DriverState + DrivingMode +DriverState * DrivingMode +(1|ID) )
+summary(After_LMM_Model)
+anova(After_LMM_Model)
+
+# Hypothesis testing
+## QQ plot for residual
+res_lmmodel <- residuals(After_LMM_Model)
+qqnorm(res_lmmodel) 
+## KS test for residual
+ks.test(res_lmmodel, "pnorm", mean(res_lmmodel), sd(res_lmmodel))
+## Levene’s test for residual
+
+leveneTest(res_lmmodel, KSS_After$DriverState)
+leveneTest(res_lmmodel, KSS_After$DrivingMode)
+
+# Main effect of DriverState
+pwc1 <- emmeans_test(KSSScores ~ DriverState, data = KSS_After, p.adjust.method = "bonferroni")
+pwc1
+# Mean_DriverState
+tapply(KSS_After$KSSScores, KSS_After$DriverState, mean, na.rm = T) 
+tapply(KSS_After$KSSScores, KSS_After$DriverState, sd, na.rm = T)
+
+# Main effect of DrivingMode
+pwc2 <- KSS_After %>% pairwise_t_test(KSSScores ~ DrivingMode, p.adjust.method = "bonferroni", paired = TRUE)
+pwc2
+# Mean_DrivingMode
+tapply(KSS_After$KSSScores, KSS_After$DrivingMode, mean, na.rm = T) 
+tapply(KSS_After$KSSScores, KSS_After$DrivingMode, sd, na.rm = T)
+
+
+### Simple Effect Analysis_by DrivingMode
+filter_Manual <- filter(KSS_After, DrivingMode =="Manual") 
+pwc <- filter_Manual %>% emmeans_test(KSSScores ~ DriverState, p.adjust.method = "bonferroni") 
+pwc
+
+filter_HandsOn <- filter(KSS_After, DrivingMode =="HandsOn") 
+pwc <- filter_HandsOn %>% emmeans_test(KSSScores ~ DriverState, p.adjust.method = "bonferroni") 
+pwc
+
+filter_HandsOff <- filter(KSS_After, DrivingMode =="HandsOff") 
+pwc <- filter_HandsOff %>% emmeans_test(KSSScores ~ DriverState, p.adjust.method = "bonferroni") 
+pwc
+
+### Mean_DriverState*DrivingMode
+KSS_After %>%
+  group_by(DriverState, DrivingMode) %>%
+  get_summary_stats(KSSScores, type = "mean_sd")
+```
+
+### 2.4 Non (Alert)
+```{r}
+# Filter
+KSS_Non_shift<- filter(KSS, DriverState =="Non")  #%>% filter(!ID %in% c("G103"))
+
+# Run model
+Non_LMM_result  <- lmer(data = KSS_Non_shift, KSSScores ~ BeforeAfter + DrivingMode +BeforeAfter * DrivingMode +(1|ID) )
+summary(Non_LMM_result)
+anova_res <- anova(Non_LMM_result, type = 3)
+anova_res
+eta_sq <- effectsize::eta_squared(anova_res, partial = TRUE)
+eta_sq
+
+# Simple-effect analysis-By BeforeAfter
+## Before
+filter_Before <- filter(KSS_Non_shift, BeforeAfter =="before") 
+Non_LMM_before  <- lmer(data = filter_Before, KSSScores ~ DrivingMode +(1|ID) )
+summary(Non_LMM_before)
+anova_res <- anova(Non_LMM_before, type = 3)
+anova_res
+eta_sq <- effectsize::eta_squared(anova_res, partial = TRUE)
+eta_sq
+
+
+pwc <- filter_Before %>% pairwise_t_test(KSSScores ~ DrivingMode, p.adjust.method = "bonferroni", paired = TRUE) 
+pwc
+
+## After
+filter_After<- filter(KSS_Non_shift, BeforeAfter =="after") 
+Non_LMM_after  <- lmer(data = filter_After, KSSScores ~ DrivingMode +(1|ID) )
+summary(Non_LMM_after)
+anova(Non_LMM_after)
+anova_res <- anova(Non_LMM_after, type = 3)
+anova_res
+eta_sq <- effectsize::eta_squared(anova_res, partial = TRUE)
+eta_sq
+
+pwc <- filter_After %>% pairwise_t_test(KSSScores ~ DrivingMode, p.adjust.method = "bonferroni", paired = TRUE) 
+pwc
+
+
+# Mean and SD
+KSS_Non_shift %>%
+  group_by(BeforeAfter, DrivingMode) %>%
+  get_summary_stats(KSSScores, type = "mean_sd")
+
+```
+
+### 2.5 Shift (Drowsy)
+```{r}
+# Filter
+KSS_Shift<- filter(KSS, DriverState =="Shift")  #%>% filter(!ID %in% c("G103", "G205"))
+
+# Run model
+Shift_LMM_result  <- lmer(data = KSS_Shift, KSSScores ~ BeforeAfter + DrivingMode +BeforeAfter * DrivingMode +(1|ID) )
+summary(Shift_LMM_result)
+anova(Shift_LMM_result)
+
+
+# Simple-effect analysis-By BeforeAfter
+filter_Before <- filter(KSS_Shift, BeforeAfter =="before") 
+Night_LMM_before  <- lmer(data = filter_Before, KSSScores ~ DrivingMode +(1|ID) )
+summary(Night_LMM_before)
+anova_res <- anova(Night_LMM_before, type = 3)
+anova_res
+eta_sq <- effectsize::eta_squared(anova_res, partial = TRUE)
+eta_sq
+
+
+pwc <- filter_Before %>% pairwise_t_test(KSSScores ~ DrivingMode, p.adjust.method = "bonferroni", paired = TRUE) 
+pwc
+
+filter_After<- filter(KSS_Shift, BeforeAfter =="after") 
+Shift_LMM_after  <- lmer(data = filter_After, KSSScores ~ DrivingMode +(1|ID) )
+summary(Shift_LMM_after)
+anova_res <- anova(Shift_LMM_after, type = 3)
+anova_res
+eta_sq <- effectsize::eta_squared(anova_res, partial = TRUE)
+eta_sq
+
+pwc <- filter_After %>% pairwise_t_test(KSSScores ~ DrivingMode, p.adjust.method = "bonferroni", paired = TRUE) 
+pwc
+
+
+# Mean and SD
+KSS_Shift %>%
+  group_by(BeforeAfter, DrivingMode) %>%
+  get_summary_stats(KSSScores, type = "mean_sd")
+```
+
+# 3 Driving performance 
+### 3.0 Read data
+```{r}
+DrivingPerformance <- read_excel("/Users/betty/Desktop/R Data Analysis/Data.xlsx", sheet=4)
+```
+
+### 3.1 Response
+#### (1) General model
+```{r}
+# Filter
+DrivingPerformance_clean<- DrivingPerformance  %>%
+  filter(!ScenarioType %in% c("S5")) 
+DrivingPerformance_clean1<- DrivingPerformance_clean %>%
+  filter(!ID %in% c("G103","G205"))
+table(DrivingPerformance_clean$DriverState, DrivingPerformance_clean$DrivingMode, DrivingPerformance_clean$RespondOrNot)
+
+# Run model
+DrivingPerformance_clean$DrivingMode <- relevel(as.factor(DrivingPerformance_clean$DrivingMode), ref = "HandsOff")
+Response_model <- glmer(RespondOrNot ~DriverState * DrivingMode + (1|ID),
+                  family = binomial,
+                  data = DrivingPerformance_clean) 
+summary(Response_model)
+Anova(Response_model, type = "III")
+
+# Calculate OR 
+coefs <- summary(Response_model)$coefficients
+coefs 
+OR <- exp(coefs[, "Estimate"])
+OR
+lower_CI <- exp(coefs[, "Estimate"] - 1.96 * coefs[, "Std. Error"])
+lower_CI
+upper_CI <- exp(coefs[, "Estimate"] + 1.96 * coefs[, "Std. Error"])
+upper_CI
+
+result_table <- data.frame(
+  Estimate = coefs[, "Estimate"],
+  SE = coefs[, "Std. Error"],
+  z = coefs[, "z value"],
+  p = coefs[, "Pr(>|z|)"],
+  OR = OR,
+  CI_Lower = lower_CI,
+  CI_Upper = upper_CI
+)
+
+print(result_table)
+
+# Mean_DrivingMode
+tapply(DrivingPerformance_clean$RespondOrNot, DrivingPerformance_clean$DrivingMode, mean, na.rm = T) 
+tapply(DrivingPerformance_clean$RespondOrNot, DrivingPerformance_clean$DrivingMode, sd, na.rm = T)
+```
+
+#### (2) Non (Alert)
+```{r}
+# filter 
+Filter_Non <- filter(DrivingPerformance_clean, DriverState == "Non")
+table(Filter_Non$DriverState, Filter_Non$DrivingMode, Filter_Non$RespondOrNot)
+
+Filter_Non$DrivingMode <- relevel(as.factor(Filter_Non$DrivingMode), ref = "HandsOff")
+
+# Run model
+Respond_Non_model <- glmer(RespondOrNot ~ DrivingMode + (1|ID),
+               data = Filter_Non,
+               family = binomial)
+summary(Respond_Non_model)
+Anova(Respond_Non_model, type = "III")
+
+# Calculate OR 
+coefs <- summary(Respond_Non_model)$coefficients
+coefs 
+OR <- exp(coefs[, "Estimate"])
+OR
+lower_CI <- exp(coefs[, "Estimate"] - 1.96 * coefs[, "Std. Error"])
+lower_CI
+upper_CI <- exp(coefs[, "Estimate"] + 1.96 * coefs[, "Std. Error"])
+upper_CI
+
+result_table <- data.frame(
+  Estimate = coefs[, "Estimate"],
+  SE = coefs[, "Std. Error"],
+  z = coefs[, "z value"],
+  p = coefs[, "Pr(>|z|)"],
+  OR = OR,
+  CI_Lower = lower_CI,
+  CI_Upper = upper_CI
+)
+
+print(result_table)
+```
+
+#### (3) Shift (Drowsy)
+```{r}
+# filter 
+Filter_Shift <- filter(DrivingPerformance_clean, DriverState == "Shift")
+table(Filter_Shift$DriverState, Filter_Shift$DrivingMode, Filter_Shift$RespondOrNot)
+
+# Run model
+Filter_Shift$DrivingMode <- relevel(as.factor(Filter_Shift$DrivingMode), ref = "HandsOff")
+Respond_Shift_model <- glmer(RespondOrNot ~ DrivingMode +(1|ID),
+               data = Filter_Shift,
+               family = binomial)
+summary(Respond_Shift_model)
+Anova(Respond_Shift_model, type = "III")
+
+# Calculate OR 
+coefs <- summary(Respond_Shift_model)$coefficients
+coefs 
+OR <- exp(coefs[, "Estimate"])
+OR
+lower_CI <- exp(coefs[, "Estimate"] - 1.96 * coefs[, "Std. Error"])
+lower_CI
+upper_CI <- exp(coefs[, "Estimate"] + 1.96 * coefs[, "Std. Error"])
+upper_CI
+
+result_table <- data.frame(
+  Estimate = coefs[, "Estimate"],
+  SE = coefs[, "Std. Error"],
+  z = coefs[, "z value"],
+  p = coefs[, "Pr(>|z|)"],
+  OR = OR,
+  CI_Lower = lower_CI,
+  CI_Upper = upper_CI
+)
+
+print(result_table)
+```
+
+### 3.2 CollisionOrNot
+#### (1) General model
+```{r}
+# Filter
+DrivingPerformance_clean<- DrivingPerformance  %>%
+  filter(ScenarioSequence == "6")
+table(DrivingPerformance_clean$DriverState, DrivingPerformance_clean$DrivingMode, DrivingPerformance_clean$CollisionOrNot)
+
+# Run model
+DrivingPerformance_clean$DrivingMode <- relevel(as.factor(DrivingPerformance_clean$DrivingMode), ref = "HandsOff")
+Collision_model <- glm(CollisionOrNot ~DriverState * DrivingMode,
+                  family = binomial,
+                  data = DrivingPerformance_clean,
+                  method = "brglmFit") # bias-reduced logistic regression
+summary(Collision_model)
+Anova(Collision_model, type = "III")
+
+
+# Calculate OR 
+coefs <- summary(Collision_model)$coefficients
+coefs 
+OR <- exp(coefs[, "Estimate"])
+OR
+lower_CI <- exp(coefs[, "Estimate"] - 1.96 * coefs[, "Std. Error"])
+lower_CI
+upper_CI <- exp(coefs[, "Estimate"] + 1.96 * coefs[, "Std. Error"])
+upper_CI
+
+result_table <- data.frame(
+  Estimate = coefs[, "Estimate"],
+  SE = coefs[, "Std. Error"],
+  z = coefs[, "z value"],
+  p = coefs[, "Pr(>|z|)"],
+  OR = OR,
+  CI_Lower = lower_CI,
+  CI_Upper = upper_CI
+)
+
+print(result_table)
+
+```
+
+#### (2) Non (Alert)
+```{r}
+## filter
+Filter_Non <- filter(DrivingPerformance_clean, DriverState == "Non")
+
+# Run model
+Filter_Non$DrivingMode <- relevel(as.factor(Filter_Non$DrivingMode), ref = "HandsOff")
+Collision_Non_model <- glm(CollisionOrNot ~ DrivingMode,
+                  family = binomial,
+                  data = Filter_Non,
+                  method = "brglmFit") # bias-reduced logistic regression
+summary(Collision_Non_model)
+Anova(Collision_Non_model, type = "III")
+
+# Calculate OR 
+coefs <- summary(Collision_Non_model)$coefficients
+coefs 
+OR <- exp(coefs[, "Estimate"])
+OR
+lower_CI <- exp(coefs[, "Estimate"] - 1.96 * coefs[, "Std. Error"])
+lower_CI
+upper_CI <- exp(coefs[, "Estimate"] + 1.96 * coefs[, "Std. Error"])
+upper_CI
+
+result_table <- data.frame(
+  Estimate = coefs[, "Estimate"],
+  SE = coefs[, "Std. Error"],
+  z = coefs[, "z value"],
+  p = coefs[, "Pr(>|z|)"],
+  OR = OR,
+  CI_Lower = lower_CI,
+  CI_Upper = upper_CI
+)
+
+print(result_table)
+```
+
+#### (3) Shift (Drowsy)
+```{r}
+# filter 
+Filter_Shift <- filter(DrivingPerformance_clean, DriverState == "Shift")
+
+# Run model
+Filter_Shift$DrivingMode <- relevel(as.factor(Filter_Shift$DrivingMode), ref = "HandsOff")
+Collision_Shift_model <- glm(CollisionOrNot ~ DrivingMode,
+                  family = binomial,
+                  data = Filter_Shift,
+                  method = "brglmFit") # bias-reduced logistic regression
+summary(Collision_Shift_model)
+Anova(Collision_Shift_model, type = "III")
+
+# Calculate OR 
+coefs <- summary(Collision_Shift_model)$coefficients
+coefs 
+OR <- exp(coefs[, "Estimate"])
+OR
+lower_CI <- exp(coefs[, "Estimate"] - 1.96 * coefs[, "Std. Error"])
+lower_CI
+upper_CI <- exp(coefs[, "Estimate"] + 1.96 * coefs[, "Std. Error"])
+upper_CI
+
+result_table <- data.frame(
+  Estimate = coefs[, "Estimate"],
+  SE = coefs[, "Std. Error"],
+  z = coefs[, "z value"],
+  p = coefs[, "Pr(>|z|)"],
+  OR = OR,
+  CI_Lower = lower_CI,
+  CI_Upper = upper_CI
+)
+
+print(result_table)
+```
+
+### 3.3 Response_TTC_Value
+#### (1) General model
+```{r}
+# log data (original data did not pass the hypothesis testing)
+DrivingPerformance_S6 <- filter(DrivingPerformance_clean,ScenarioSequence=="6" & RespondOrNot =="1") 
+DrivingPerformance_S6$DrivingMode <- relevel(as.factor(DrivingPerformance_S6$DrivingMode), ref = "Manual")
+
+# Run model
+TTC_Model <- lmer(log(Response_TTC_Value)~DriverState+DrivingMode+DriverState*DrivingMode+(1|ID), data = DrivingPerformance_S6)
+summary(TTC_Model)
+anova_res <- anova(TTC_Model, type = 3)
+anova_res
+eta_sq <- effectsize::eta_squared(anova_res, partial = TRUE)
+eta_sq
+
+# Hypothesis testing
+## QQ plot for residual
+res_lmmodel <- residuals(TTC_Model)
+qqnorm(res_lmmodel) 
+## KS test for residual
+ks.test(res_lmmodel, "pnorm", mean(res_lmmodel), sd(res_lmmodel))
+## Levene’s test for residual
+
+leveneTest(res_lmmodel, DrivingPerformance_S6$DriverState)
+leveneTest(res_lmmodel, DrivingPerformance_S6$DrivingMode)
+
+## Mean_DrivingMode
+tapply(DrivingPerformance_S6$Response_TTC_Value, DrivingPerformance_S6$DrivingMode, mean, na.rm = T) 
+tapply(DrivingPerformance_S6$Response_TTC_Value, DrivingPerformance_S6$DrivingMode, sd, na.rm = T) 
+
+tapply(DrivingPerformance_S6$Response_TTC_Value, DrivingPerformance_S6$DriverState, mean, na.rm = T) 
+tapply(DrivingPerformance_S6$Response_TTC_Value, DrivingPerformance_S6$DriverState, sd, na.rm = T)
+```
+
+#### (2) Non (Alert)
+```{r}
+# Filter
+Filter_DrivingPerformance_S6 <- filter(DrivingPerformance_S6, DriverState =="Non") 
+Filter_DrivingPerformance_S6$DrivingMode <- relevel(as.factor(Filter_DrivingPerformance_S6$DrivingMode), ref = "Manual")
+
+# Run model
+TTC_Model <- lmer(log(Response_TTC_Value)~DrivingMode+(1|ID), data = Filter_DrivingPerformance_S6)
+summary(TTC_Model)
+anova_res <- anova(TTC_Model, type = 3)
+anova_res
+eta_sq <- effectsize::eta_squared(anova_res, partial = TRUE)
+eta_sq
+
+```
+
+#### (3) Shift (Drowsy)
+```{r}
+# Filter 
+Filter_DrivingPerformance_S6 <- filter(DrivingPerformance_S6, DriverState =="Shift") 
+Filter_DrivingPerformance_S6$DrivingMode <- relevel(as.factor(Filter_DrivingPerformance_S6$DrivingMode), ref = "Manual")
+
+# Run model
+TTC_Model <- lmer(log(Response_TTC_Value)~DrivingMode+(1|ID), data = Filter_DrivingPerformance_S6)
+summary(TTC_Model)
+anova_res <- anova(TTC_Model, type = 3)
+anova_res
+eta_sq <- effectsize::eta_squared(anova_res, partial = TRUE)
+eta_sq
+
+# Mean and SD
+DrivingPerformance_S6 %>%
+  group_by(DriverState, DrivingMode) %>%
+  get_summary_stats(Response_TTC_Value, type = "mean_sd")
+```
+
+
+# 4 Eyemovement
+### 4.0 Read data and filter
+```{r}
+EyeMovement <- read_excel("/Users/betty/Desktop/R Data Analysis/Data.xlsx", sheet=5)
+
+EyeMovement$DriverState <- as.factor(EyeMovement$DriverState)
+EyeMovement$DrivingMode <- as.factor(EyeMovement$DrivingMode)
+EyeMovement$ScenarioSequence <- as.factor(EyeMovement$ScenarioSequence)
+EyeMovement$ScenarioType <- as.factor(EyeMovement$ScenarioType)
+```
+
+
+
+
+### 4.1 Hazard Identification
+#### (1) General model
+```{r}
+EyeMovement_clean <- EyeMovement %>%
+  filter(!ScenarioType %in% c("S5"),
+         !is.na(Hazard_Identification)) 
+
+# Run model
+EyeMovement_clean$DrivingMode <- relevel(as.factor(EyeMovement_clean$DrivingMode), ref = "HandsOff")
+FHI_model <- glm(Hazard_Identification ~DriverState * DrivingMode,
+                  family = binomial,
+                  data = EyeMovement_clean,
+                  method = "brglmFit") # bias-reduced logistic regression
+summary(FHI_model)
+Anova(FHI_model, type = "III")
+
+
+# Calculate OR 
+coefs <- summary(FHI_model)$coefficients
+coefs 
+OR <- exp(coefs[, "Estimate"])
+OR
+lower_CI <- exp(coefs[, "Estimate"] - 1.96 * coefs[, "Std. Error"])
+lower_CI
+upper_CI <- exp(coefs[, "Estimate"] + 1.96 * coefs[, "Std. Error"])
+upper_CI
+
+result_table <- data.frame(
+  Estimate = coefs[, "Estimate"],
+  SE = coefs[, "Std. Error"],
+  z = coefs[, "z value"],
+  p = coefs[, "Pr(>|z|)"],
+  OR = OR,
+  CI_Lower = lower_CI,
+  CI_Upper = upper_CI
+)
+
+print(result_table)
+
+# Mean and SD
+MeanSD <- EyeMovement_clean %>%
+  group_by(DriverState, DrivingMode) %>%
+  get_summary_stats(Hazard_Identification, type = "mean_sd") %>%
+  mutate(across(where(is.numeric), ~ format(.x, digits = 5, nsmall = 5)))
+MeanSD
+```
+
+#### (1) Non (Alert)
+```{r}
+# Filter
+Filter_Non <- filter(EyeMovement_clean, DriverState == "Non")
+
+# Run model
+FHI_Non_model <- glm(Hazard_Identification ~DrivingMode,
+                  family = binomial,
+                  data = Filter_Non,
+                  method = "brglmFit") # bias-reduced logistic regression
+summary(FHI_Non_model)
+
+# Calculate OR 
+coefs <- summary(FHI_Non_model)$coefficients
+coefs 
+OR <- exp(coefs[, "Estimate"])
+OR
+lower_CI <- exp(coefs[, "Estimate"] - 1.96 * coefs[, "Std. Error"])
+lower_CI
+upper_CI <- exp(coefs[, "Estimate"] + 1.96 * coefs[, "Std. Error"])
+upper_CI
+
+result_table <- data.frame(
+  Estimate = coefs[, "Estimate"],
+  SE = coefs[, "Std. Error"],
+  z = coefs[, "z value"],
+  p = coefs[, "Pr(>|z|)"],
+  OR = OR,
+  CI_Lower = lower_CI,
+  CI_Upper = upper_CI
+)
+
+print(result_table)
+```
+
+#### (2) Shift (Drowsy)
+```{r}
+# Filter
+Filter_Shift <- filter(EyeMovement_clean, DriverState == "Shift")
+
+# Run model
+FHI_Shift_model <- glmer(Hazard_Identification~ DrivingMode+(1|ID),
+               data = Filter_Shift,
+               family = binomial)
+summary(FHI_Shift_model)
+Anova(FHI_Shift_model, type = "III") 
+
+# Calculate OR 
+coefs <- summary(FHI_Shift_model)$coefficients
+coefs 
+OR <- exp(coefs[, "Estimate"])
+OR
+lower_CI <- exp(coefs[, "Estimate"] - 1.96 * coefs[, "Std. Error"])
+lower_CI
+upper_CI <- exp(coefs[, "Estimate"] + 1.96 * coefs[, "Std. Error"])
+upper_CI
+
+result_table <- data.frame(
+  Estimate = coefs[, "Estimate"],
+  SE = coefs[, "Std. Error"],
+  z = coefs[, "z value"],
+  p = coefs[, "Pr(>|z|)"],
+  OR = OR,
+  CI_Lower = lower_CI,
+  CI_Upper = upper_CI
+)
+
+print(result_table)
+```
+
+### 4.2 First Hazard Identification Time
+#### (1) General model
+```{r}
+# Run model
+FHIT_Model <- lmer(First_Hazard_Identification_Time~DriverState+DrivingMode+DriverState*DrivingMode+(1|ID), data = EyeMovement_clean)
+summary(FHIT_Model)
+anova_res <- anova(FHIT_Model, type = 3)
+anova_res
+eta_sq <- effectsize::eta_squared(anova_res, partial = TRUE)
+eta_sq
+
+# Hypothesis testing
+## QQ plot for residual
+res_lmmodel <- residuals(FHIT_Model)
+qqnorm(res_lmmodel) 
+## KS test for residual
+ks.test(res_lmmodel, "pnorm", mean(res_lmmodel), sd(res_lmmodel))
+
+
+# Main effect of DriverState
+pwc <-  emmeans_test(First_Hazard_Identification_Time ~ DriverState, data = EyeMovement_clean, p.adjust.method = "bonferroni")
+pwc
+
+# Mean and SD
+tapply(EyeMovement_clean$First_Hazard_Identification_Time, EyeMovement_clean$DriverState, mean, na.rm = T) 
+tapply(EyeMovement_clean$First_Hazard_Identification_Time, EyeMovement_clean$DriverState, sd, na.rm = T) 
+```
+
+#### (2) Non (Alert)
+```{r}
+# Filter
+Filter_Non <- filter(EyeMovement_clean, DriverState == "Non")
+
+# Run model
+Filter_Non$DrivingMode <- relevel(as.factor(Filter_Non$DrivingMode), ref = "Manual")
+FHI_Non_model <- lmer(First_Hazard_Identification_Time~DrivingMode+(1|ID), data = Filter_Non)
+summary(FHI_Non_model)
+anova(FHI_Non_model)
+eta_squared_result <- eta_squared(FHI_Non_model, partial = TRUE)
+eta_squared_result
+
+```
+
+
+#### (3) Shift (Drowsy)
+```{r}
+# Filter
+Filter_Shift <- filter(EyeMovement_clean, DriverState == "Shift")
+
+# Run model
+FHI_Shift_model <- lmer(First_Hazard_Identification_Time~DrivingMode+(1|ID), data = Filter_Shift)
+summary(FHI_Shift_model)
+anova(FHI_Shift_model)
+eta_squared_result <- eta_squared(FHI_Shift_model, partial = TRUE)
+eta_squared_result
+```
+
+
+
+### 4.3 PD (60s before the start of each event)
+#### (1) General Model 
+```{r}
+EyeMovement_clean <- EyeMovement %>%
+  filter(!ScenarioType %in% c("S5"))
+
+# Run model
+EyeMovement_clean$DrivingMode <- relevel(as.factor(EyeMovement_clean$DrivingMode), ref = "HandsOff") 
+PD_Filtered_Model <- lmer(PD_Filtered_Mean~DriverState+DrivingMode+DriverState*DrivingMode+(1+ScenarioSequence|ID), data = EyeMovement_clean)
+summary(PD_Filtered_Model)
+anova_res <- anova(PD_Filtered_Model, type = 3)
+anova_res
+eta_sq <- effectsize::eta_squared(anova_res, partial = TRUE)
+eta_sq
+
+# Hypothesis testing
+## QQ plot for residual
+res_lmmodel <- residuals(PD_Filtered_Model)
+qqnorm(res_lmmodel) 
+## KS test for residual
+ks.test(res_lmmodel, "pnorm", mean(res_lmmodel), sd(res_lmmodel))
+
+# Post hoc analysis
+pwc <- EyeMovement_clean %>% pairwise_t_test(PD_Filtered_Mean ~ DrivingMode, p.adjust.method = "bonferroni", paired = TRUE) 
+pwc
+
+# Mean and sd of PD for different DrivingMode
+tapply(EyeMovement_clean$PD_Filtered_Mean, EyeMovement_clean$DrivingMode, mean, na.rm = T)  
+tapply(EyeMovement_clean$PD_Filtered_Mean, EyeMovement_clean$DrivingMode, sd, na.rm = T)  
+
+EyeMovement_clean %>%
+  group_by(DriverState,DrivingMode) %>%
+  summarise(
+    mean = mean(PD_Filtered_Mean, na.rm = TRUE),
+    sd = sd(PD_Filtered_Mean, na.rm = TRUE),
+    n = sum(!is.na(PD_Filtered_Mean)),
+    se = sd / sqrt(n)
+  )
+```
+
+#### (2) Non (Alert)
+```{r}
+# Filter
+EyeMovement_clean_Non <- filter(EyeMovement_clean, DriverState == "Non")
+EyeMovement_clean_Non$DrivingMode <- relevel(as.factor(EyeMovement_clean_Non$DrivingMode), ref = "HandsOff") 
+
+# Run model
+PD_Non_Model <- lmer(PD_Filtered_Mean~DrivingMode+(1|ID), data = EyeMovement_clean_Non)
+summary(PD_Non_Model)
+anova_res <- anova(PD_Non_Model, type = 3)
+anova_res
+eta_sq <- effectsize::eta_squared(anova_res, partial = TRUE)
+eta_sq
+
+
+# Main effect for different DrivingMode
+pwc <- EyeMovement_clean_Non %>% pairwise_t_test(PD_Filtered_Mean ~ DrivingMode, p.adjust.method = "bonferroni", paired = TRUE) 
+pwc
+
+# Mean and SD
+EyeMovement_clean_Non %>%
+  group_by(DrivingMode) %>%
+  get_summary_stats(PD_Filtered_Mean, type = "mean_sd")
+```
+
+#### (3) Shift (Drowsy)
+```{r}
+# Filter
+EyeMovement_clean_Shift <- filter(EyeMovement_clean, DriverState == "Shift")
+EyeMovement_clean_Shift$DrivingMode <- relevel(as.factor(EyeMovement_clean_Shift$DrivingMode), ref = "HandsOn") 
+
+# Run model
+PD_Shift_Model <- lmer(PD_Filtered_Mean~DrivingMode+(1|ID), data = EyeMovement_clean_Shift)
+summary(PD_Shift_Model)
+anova_res <- anova(PD_Shift_Model, type = 3)
+anova_res
+eta_sq <- effectsize::eta_squared(anova_res, partial = TRUE)
+eta_sq
+
+# Main effect of DrivingMode
+pwc <- EyeMovement_clean_Shift %>% pairwise_t_test(PD_Filtered_Mean ~ DrivingMode, p.adjust.method = "bonferroni", paired = TRUE) 
+pwc
+
+# Mean and SD
+EyeMovement_clean_Shift %>%
+  group_by(DrivingMode) %>%
+  get_summary_stats(PD_Filtered_Mean, type = "mean_sd")
+```
+
+
+### 4.4 SD of Gaze X (whole driving without considering scenarios)
+```{r}
+SDGazeX <- read_excel("/Users/betty/Desktop/R Data Analysis/Data.xlsx", sheet=6)
+SDGazeX$DriverState <- as.factor(SDGazeX$DriverState)
+SDGazeX$DrivingMode <- as.factor(SDGazeX$DrivingMode)
+SDGazeX$ModeSequence <- as.factor(SDGazeX$ModeSequence)
+```
+#### (1) General Model
+```{r}
+# Run model
+SDGazeX$DrivingMode <- relevel(as.factor(SDGazeX$DrivingMode), ref = "Manual") 
+SDGazeX_Model <- lmer(Gaze_X_STD~DriverState+DrivingMode+DriverState*DrivingMode+(1|ID), data = SDGazeX)
+summary(SDGazeX_Model)
+anova_res <- anova(SDGazeX_Model, type = 3)
+anova_res
+eta_sq <- effectsize::eta_squared(anova_res, partial = TRUE)
+eta_sq
+
+# Hypothesis testing
+## QQ plot for residual
+res_lmmodel <- residuals(SDGazeX_Model )
+qqnorm(res_lmmodel) 
+## KS test for residual
+ks.test(res_lmmodel, "pnorm", mean(res_lmmodel), sd(res_lmmodel))
+## Levene’s test for residual
+leveneTest(res_lmmodel, SDGazeX$DriverState)
+leveneTest(res_lmmodel, SDGazeX$DrivingMode)
+
+
+### Post hoc analysis 
+pwc <- emmeans_test(Gaze_X_STD ~ DriverState, data = SDGazeX, p.adjust.method = "bonferroni")
+pwc
+pwc <- SDGazeX %>% pairwise_t_test(Gaze_X_STD~ DrivingMode, p.adjust.method = "bonferroni", paired = TRUE) 
+pwc
+
+
+### Mean_DriverState
+tapply(SDGazeX$Gaze_X_STD, SDGazeX$DriverState, mean, na.rm = T) 
+tapply(SDGazeX$Gaze_X_STD, SDGazeX$DriverState, sd, na.rm = T)
+### Mean_DrivingMode
+tapply(SDGazeX$Gaze_X_STD, SDGazeX$DrivingMode, mean, na.rm = T) 
+tapply(SDGazeX$Gaze_X_STD, SDGazeX$DrivingMode, sd, na.rm = T)
+
+
+### Mean and SD
+SDGazeX%>%
+  group_by(DriverState, DrivingMode) %>%
+  get_summary_stats(Gaze_X_STD, type = "mean_sd")
+```
+
+#### (2) Non (Alert)
+```{r}
+# Run model
+SDGazeX_Non <- filter(SDGazeX, DriverState == "Non")
+SDGazeX_Non$DrivingMode <- relevel(as.factor(SDGazeX_Non$DrivingMode), ref = "Manual") 
+SDGazeX_Non_Model <- lmer(Gaze_X_STD~DrivingMode+(1|ID), data = SDGazeX_Non)
+summary(SDGazeX_Non_Model)
+anova_res <- anova(SDGazeX_Non_Model, type = 3)
+anova_res
+eta_sq <- effectsize::eta_squared(anova_res, partial = TRUE)
+eta_sq
+
+pwc <- SDGazeX_Non %>% pairwise_t_test(Gaze_X_STD~ DrivingMode, p.adjust.method = "bonferroni", paired = TRUE) 
+pwc
+```
+
+#### (3) Shift (Drowsy)
+```{r}
+# Run model
+SDGazeX_Shift <- filter(SDGazeX, DriverState == "Shift")
+SDGazeX_Shift$DrivingMode <- relevel(as.factor(SDGazeX_Shift$DrivingMode), ref = "Manual") 
+SDGazeX_Shift_Model <- lmer(Gaze_X_STD~DrivingMode+(1|ID), data = SDGazeX_Shift)
+summary(SDGazeX_Shift_Model)
+anova_res <- anova(SDGazeX_Shift_Model, type = 3)
+anova_res
+eta_sq <- effectsize::eta_squared(anova_res, partial = TRUE)
+eta_sq
+
+pwc <- SDGazeX_Shift %>% pairwise_t_test(Gaze_X_STD~ DrivingMode, p.adjust.method = "bonferroni", paired = TRUE) 
+pwc
+
+
+```
+
+### 4.5 SD of Gaze Y (whole driving without considering scenarios)
+```{r}
+SDGazeY <- read_excel("/Users/betty/Desktop/R Data Analysis/Data.xlsx", sheet=6)
+SDGazeY$DriverState <- as.factor(SDGazeY$DriverState)
+SDGazeY$DrivingMode <- as.factor(SDGazeY$DrivingMode)
+SDGazeY$ModeSequence <- as.factor(SDGazeY$ModeSequence)
+```
+
+#### (1) General Model
+```{r}
+# Run Model
+SDGazeY$DrivingMode <- relevel(as.factor(SDGazeY$DrivingMode), ref = "Manual")
+SDGazeY_Model <- lmer(Gaze_Y_STD~DriverState+DrivingMode+DriverState*DrivingMode+(1|ID), data = SDGazeY)
+summary(SDGazeY_Model)
+anova_res <- anova(SDGazeY_Model, type = 3)
+anova_res
+eta_sq <- effectsize::eta_squared(anova_res, partial = TRUE)
+eta_sq
+
+# Hypothesis testing
+## QQ plot for residual
+res_lmmodel <- residuals(SDGazeY_Model )
+qqnorm(res_lmmodel) 
+## KS test for residual
+ks.test(res_lmmodel, "pnorm", mean(res_lmmodel), sd(res_lmmodel))
+## Levene’s test for residual
+leveneTest(res_lmmodel, SDGazeY$DriverState)
+leveneTest(res_lmmodel, SDGazeY$DrivingMode)
+
+
+### Post hoc analysis 
+pwc <- emmeans_test(Gaze_Y_STD ~ DriverState, data = SDGazeY, p.adjust.method = "bonferroni")
+pwc
+pwc <- SDGazeY %>% pairwise_t_test(Gaze_Y_STD~ DrivingMode, p.adjust.method = "bonferroni", paired = TRUE) 
+pwc
+
+### Mean_DriverState
+tapply(SDGazeY$Gaze_Y_STD, SDGazeY$DriverState, mean, na.rm = T) 
+tapply(SDGazeY$Gaze_Y_STD, SDGazeY$DriverState, sd, na.rm = T)
+### Mean_DrivingMode
+tapply(SDGazeY$Gaze_Y_STD, SDGazeY$DrivingMode, mean, na.rm = T) 
+tapply(SDGazeY$Gaze_Y_STD, SDGazeY$DrivingMode, sd, na.rm = T)
+
+
+### Mean and SD
+SDGazeY %>%
+  group_by(DriverState, DrivingMode) %>%
+  get_summary_stats(Gaze_Y_STD, type = "mean_sd")
+```
+
+#### (2) Non (Alert)
+```{r}
+# Run model
+SDGazeY_Non <- filter(SDGazeY, DriverState == "Non")
+SDGazeY_Non$DrivingMode <- relevel(as.factor(SDGazeY_Non$DrivingMode), ref = "Manual") 
+SDGazeY_Non_Model <- lmer(Gaze_Y_STD~DrivingMode+(1|ID), data = SDGazeY_Non)
+summary(SDGazeY_Non_Model)
+anova_res <- anova(SDGazeY_Model, type = 3)
+anova_res
+eta_sq <- effectsize::eta_squared(anova_res, partial = TRUE)
+eta_sq
+
+pwc <- SDGazeY_Non %>% pairwise_t_test(Gaze_Y_STD~ DrivingMode, p.adjust.method = "bonferroni", paired = TRUE) 
+pwc
+```
+
+#### (3) Shift (Drowsy)
+```{r}
+# Run model
+SDGazeY_Shift <- filter(SDGazeY, DriverState == "Shift")
+SDGazeY_Shift$DrivingMode <- relevel(as.factor(SDGazeY_Shift$DrivingMode), ref = "Manual") 
+SDGazeY_Shift_Model <- lmer(Gaze_Y_STD~DrivingMode+(1|ID), data = SDGazeY_Shift)
+summary(SDGazeY_Shift_Model)
+anova_res <- anova(SDGazeY_Shift_Model, type = 3)
+anova_res
+eta_sq <- effectsize::eta_squared(anova_res, partial = TRUE)
+eta_sq
+
+pwc <- SDGazeY_Shift %>% pairwise_t_test(Gaze_Y_STD~ DrivingMode, p.adjust.method = "bonferroni", paired = TRUE) 
+pwc
+```
